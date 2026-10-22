@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
 import type { Report, CompareResponse } from '../types';
-import { GitCompare, CheckCircle2, Info, ArrowUpRight, ArrowDownRight, Minus, AlertTriangle } from 'lucide-react';
+import {
+  GitCompare, CheckCircle2, ArrowUpRight, ArrowDownRight,
+  Minus, AlertTriangle, Calendar, FileText, ShieldCheck, Activity, RefreshCw
+} from 'lucide-react';
 
 interface ComparePageProps {
   initialReportIdA?: string;
@@ -36,7 +39,7 @@ export const ComparePage: React.FC<ComparePageProps> = ({ initialReportIdA }) =>
   const handleCompare = async () => {
     if (!reportIdA || !reportIdB) return;
     if (reportIdA === reportIdB) {
-      setError('Please select two different reports to compare.');
+      setError('Please select two distinct reports to compute longitudinal deltas.');
       return;
     }
 
@@ -58,48 +61,109 @@ export const ComparePage: React.FC<ComparePageProps> = ({ initialReportIdA }) =>
     }
   }, [reportIdA, reportIdB]);
 
+  const reportAObj = useMemo(() => reports.find((r) => r.id === reportIdA), [reports, reportIdA]);
+  const reportBObj = useMemo(() => reports.find((r) => r.id === reportIdB), [reports, reportIdB]);
+
+  const swapReports = () => {
+    const temp = reportIdA;
+    setReportIdA(reportIdB);
+    setReportIdB(temp);
+  };
+
+  const deltaStats = useMemo(() => {
+    if (!comparison) return { increased: 0, decreased: 0, unchanged: 0 };
+    let increased = 0;
+    let decreased = 0;
+    let unchanged = 0;
+    comparison.matched_parameters.forEach((p) => {
+      if (p.is_comparable && p.numeric_delta !== null && p.numeric_delta !== undefined) {
+        if (p.numeric_delta > 0) increased++;
+        else if (p.numeric_delta < 0) decreased++;
+        else unchanged++;
+      }
+    });
+    return { increased, decreased, unchanged };
+  }, [comparison]);
+
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '2rem auto', padding: '0 1.5rem' }}>
+    <div className="animate-fade-in" style={{ maxWidth: '1160px', margin: '2rem auto', padding: '0 1.5rem 4rem' }}>
       
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <GitCompare size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.45rem' }}>
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #0284C7, #0D9488)',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <GitCompare size={20} />
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
             Longitudinal Report Comparison
           </h1>
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          Compare matching diagnostic parameters over time across two of your laboratory records.
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '750px' }}>
+          Compare matching diagnostic analytes across different laboratory dates to track progression, observe changes, and verify reference unit consistency.
         </p>
       </div>
 
       {error && (
-        <div style={{ backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '0.5rem', padding: '0.85rem', marginBottom: '1.5rem', color: '#991B1B', fontSize: '0.85rem' }}>
-          {error}
+        <div style={{
+          backgroundColor: '#FEF2F2',
+          border: '1px solid #FCA5A5',
+          borderRadius: '12px',
+          padding: '1rem 1.25rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: '#991B1B',
+          fontSize: '0.875rem'
+        }}>
+          <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Selectors Bar */}
-      <div className="card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem', alignItems: 'flex-end' }}>
+      {/* Selectors Card */}
+      <div className="card-glass" style={{ padding: '1.75rem', marginBottom: '2rem', borderRadius: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1.25rem', alignItems: 'center' }}>
           
-          <div>
-            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-              Baseline Report (Report A)
-            </label>
+          {/* Baseline Report Selection */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            padding: '1.25rem',
+            borderRadius: '12px',
+            border: '1px solid var(--border-subtle)',
+            boxShadow: 'var(--shadow-subtle)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--primary)', backgroundColor: 'var(--primary-light)', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                Baseline
+              </span>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Report A
+              </label>
+            </div>
+            
             <select
               value={reportIdA}
               onChange={(e) => setReportIdA(e.target.value)}
               style={{
                 width: '100%',
-                padding: '0.65rem 0.75rem',
-                borderRadius: '0.5rem',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '8px',
                 border: '1px solid var(--border-strong)',
                 fontSize: '0.875rem',
-                backgroundColor: '#FFFFFF'
+                backgroundColor: '#FFFFFF',
+                color: 'var(--text-primary)',
+                fontWeight: 500,
+                outline: 'none'
               }}
             >
               {reports.map((r) => (
@@ -108,22 +172,81 @@ export const ComparePage: React.FC<ComparePageProps> = ({ initialReportIdA }) =>
                 </option>
               ))}
             </select>
+
+            {reportAObj && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem', fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Calendar size={13} /> {reportAObj.document_date || 'Undated'}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <FileText size={13} /> {reportAObj.page_count || 1} pages
+                </span>
+              </div>
+            )}
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
-              Follow-Up Report (Report B)
-            </label>
+          {/* Swap Button */}
+          <div style={{ textAlign: 'center' }}>
+            <button
+              onClick={swapReports}
+              title="Swap Baseline and Follow-up"
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid var(--border-subtle)',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: 'var(--shadow-subtle)',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--bg-app)';
+                e.currentTarget.style.color = 'var(--primary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#FFFFFF';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <GitCompare size={18} />
+            </button>
+          </div>
+
+          {/* Follow-Up Report Selection */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            padding: '1.25rem',
+            borderRadius: '12px',
+            border: '1px solid var(--border-subtle)',
+            boxShadow: 'var(--shadow-subtle)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--teal-accent)', backgroundColor: 'var(--teal-light)', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                Follow-Up
+              </span>
+              <label style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Report B
+              </label>
+            </div>
+
             <select
               value={reportIdB}
               onChange={(e) => setReportIdB(e.target.value)}
               style={{
                 width: '100%',
-                padding: '0.65rem 0.75rem',
-                borderRadius: '0.5rem',
+                padding: '0.65rem 0.85rem',
+                borderRadius: '8px',
                 border: '1px solid var(--border-strong)',
                 fontSize: '0.875rem',
-                backgroundColor: '#FFFFFF'
+                backgroundColor: '#FFFFFF',
+                color: 'var(--text-primary)',
+                fontWeight: 500,
+                outline: 'none'
               }}
             >
               {reports.map((r) => (
@@ -132,53 +255,178 @@ export const ComparePage: React.FC<ComparePageProps> = ({ initialReportIdA }) =>
                 </option>
               ))}
             </select>
-          </div>
 
-          <div>
-            <button
-              onClick={handleCompare}
-              disabled={loading || !reportIdA || !reportIdB || reportIdA === reportIdB}
-              className="btn-primary"
-              style={{ width: '100%', padding: '0.65rem' }}
-            >
-              {loading ? 'Comparing...' : 'Refresh Comparison'}
-            </button>
+            {reportBObj && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.75rem', fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <Calendar size={13} /> {reportBObj.document_date || 'Undated'}
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <FileText size={13} /> {reportBObj.page_count || 1} pages
+                </span>
+              </div>
+            )}
           </div>
 
         </div>
       </div>
 
+      {/* Loading state */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+          <RefreshCw size={28} className="spin" style={{ margin: '0 auto 0.75rem', color: 'var(--primary)', animation: 'spin 1s linear infinite' }} />
+          <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text-primary)' }}>Comparing Diagnostic Analytes...</div>
+          <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Aligning standard units and computing numeric deltas</p>
+        </div>
+      )}
+
       {/* Comparison Results */}
-      {comparison && (
+      {!loading && comparison && (
         <div>
-          
-          {/* Matched Parameters Table */}
-          <div className="card" style={{ overflow: 'hidden', marginBottom: '2rem' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Longitudinal Snapshot Pills */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1rem',
+            marginBottom: '2rem'
+          }}>
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                backgroundColor: 'var(--primary-light)',
+                color: 'var(--primary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Activity size={22} />
+              </div>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  Matched Laboratory Parameters ({comparison.matched_parameters.length})
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  {comparison.matched_parameters.length}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  Matched Analytes
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                color: '#C2410C',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <ArrowUpRight size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#C2410C' }}>
+                  {deltaStats.increased}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  Values Elevated
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                color: '#2563EB',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <ArrowDownRight size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#2563EB' }}>
+                  {deltaStats.decreased}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  Values Decreased
+                </div>
+              </div>
+            </div>
+
+            <div className="card" style={{ padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '10px',
+                backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                color: '#0D9488',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <CheckCircle2 size={22} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0D9488' }}>
+                  {comparison.matched_parameters.filter((p) => p.is_comparable).length}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  Directly Comparable
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Matched Parameters Table */}
+          <div className="card" style={{ overflow: 'hidden', marginBottom: '2.5rem', borderRadius: '16px' }}>
+            <div style={{
+              padding: '1.25rem 1.5rem',
+              borderBottom: '1px solid var(--border-subtle)',
+              backgroundColor: '#FFFFFF',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                  Matched Diagnostic Parameters ({comparison.matched_parameters.length})
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                  Comparing values with verified units and standardized analyte identities
+                  Comparing longitudinal biometric trajectories with strict unit standardization
                 </p>
               </div>
             </div>
 
             {comparison.matched_parameters.length === 0 ? (
-              <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No matching test names were detected across these two reports.
+              <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                No matching analyte names detected between these two reports.
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
                   <thead>
                     <tr style={{ backgroundColor: 'var(--bg-app)', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
-                      <th style={{ padding: '0.75rem 1.25rem', fontWeight: 600 }}>Test Parameter</th>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Report A Value</th>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Report B Value</th>
-                      <th style={{ padding: '0.75rem 1rem', fontWeight: 600 }}>Change (Delta)</th>
-                      <th style={{ padding: '0.75rem 1.25rem', fontWeight: 600 }}>Compatibility Status</th>
+                      <th style={{ padding: '0.85rem 1.25rem', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Analyte
+                      </th>
+                      <th style={{ padding: '0.85rem 1rem', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Report A Value
+                      </th>
+                      <th style={{ padding: '0.85rem 1rem', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Report B Value
+                      </th>
+                      <th style={{ padding: '0.85rem 1rem', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Longitudinal Delta
+                      </th>
+                      <th style={{ padding: '0.85rem 1.25rem', fontWeight: 600, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Compatibility Audit
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -191,42 +439,56 @@ export const ComparePage: React.FC<ComparePageProps> = ({ initialReportIdA }) =>
                         <tr
                           key={idx}
                           style={{ borderBottom: '1px solid var(--border-subtle)', transition: 'background 0.15s ease' }}
+                          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F8FAFC')}
+                          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                         >
-                          <td style={{ padding: '0.85rem 1.25rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <td style={{ padding: '1rem 1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                             {p.test_name}
                           </td>
 
-                          <td style={{ padding: '0.85rem 1rem' }}>
-                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {p.value_text_a} {p.unit_a}
+                          <td style={{ padding: '1rem 1rem' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                              {p.value_text_a} <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{p.unit_a}</span>
                             </div>
                             {p.flag_a && (
-                              <span className={`badge badge-${p.flag_a.toLowerCase()}`} style={{ marginTop: '0.2rem' }}>
+                              <span className={`badge badge-${p.flag_a.toLowerCase()}`} style={{ marginTop: '0.25rem' }}>
+                                <span className="status-dot"></span>
                                 {p.flag_a}
                               </span>
                             )}
                           </td>
 
-                          <td style={{ padding: '0.85rem 1rem' }}>
-                            <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {p.value_text_b} {p.unit_b}
+                          <td style={{ padding: '1rem 1rem' }}>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                              {p.value_text_b} <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{p.unit_b}</span>
                             </div>
                             {p.flag_b && (
-                              <span className={`badge badge-${p.flag_b.toLowerCase()}`} style={{ marginTop: '0.2rem' }}>
+                              <span className={`badge badge-${p.flag_b.toLowerCase()}`} style={{ marginTop: '0.25rem' }}>
+                                <span className="status-dot"></span>
                                 {p.flag_b}
                               </span>
                             )}
                           </td>
 
-                          <td style={{ padding: '0.85rem 1rem' }}>
+                          <td style={{ padding: '1rem 1rem' }}>
                             {p.is_comparable && deltaDisplay ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600, color: p.numeric_delta! > 0 ? '#C2410C' : p.numeric_delta! < 0 ? '#2563EB' : 'var(--text-muted)' }}>
+                              <div style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                                fontWeight: 700,
+                                fontFamily: 'var(--font-mono)',
+                                color: p.numeric_delta! > 0 ? '#C2410C' : p.numeric_delta! < 0 ? '#2563EB' : 'var(--text-muted)',
+                                backgroundColor: p.numeric_delta! > 0 ? '#FFF7ED' : p.numeric_delta! < 0 ? '#EFF6FF' : 'var(--bg-app)',
+                                padding: '0.25rem 0.6rem',
+                                borderRadius: '6px'
+                              }}>
                                 {p.numeric_delta! > 0 ? (
-                                  <ArrowUpRight size={16} />
+                                  <ArrowUpRight size={15} />
                                 ) : p.numeric_delta! < 0 ? (
-                                  <ArrowDownRight size={16} />
+                                  <ArrowDownRight size={15} />
                                 ) : (
-                                  <Minus size={16} />
+                                  <Minus size={15} />
                                 )}
                                 <span>{deltaDisplay} {p.unit_b}</span>
                               </div>
@@ -237,20 +499,20 @@ export const ComparePage: React.FC<ComparePageProps> = ({ initialReportIdA }) =>
                             )}
                           </td>
 
-                          <td style={{ padding: '0.85rem 1.25rem' }}>
+                          <td style={{ padding: '1rem 1.25rem' }}>
                             {p.is_comparable ? (
-                              <span style={{ color: 'var(--teal-accent)', fontSize: '0.775rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                                <CheckCircle2 size={14} />
-                                Comparable
+                              <span style={{ color: '#0D9488', fontSize: '0.775rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.35rem', backgroundColor: '#F0FDFA', padding: '0.25rem 0.55rem', borderRadius: '6px' }}>
+                                <CheckCircle2 size={13} />
+                                Standardized & Comparable
                               </span>
                             ) : (
-                              <div style={{ color: '#B45309', fontSize: '0.775rem', lineHeight: 1.3 }}>
-                                <span style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <div style={{ color: '#92400E', fontSize: '0.75rem', lineHeight: 1.35, backgroundColor: '#FEF3C7', padding: '0.35rem 0.65rem', borderRadius: '6px' }}>
+                                <span style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                                   <AlertTriangle size={13} />
-                                  Not Comparable
+                                  Not Directly Comparable
                                 </span>
                                 {p.incompatibility_reason && (
-                                  <div style={{ marginTop: '0.2rem', color: 'var(--text-muted)' }}>
+                                  <div style={{ marginTop: '0.15rem', color: '#B45309' }}>
                                     {p.incompatibility_reason}
                                   </div>
                                 )}
@@ -266,40 +528,55 @@ export const ComparePage: React.FC<ComparePageProps> = ({ initialReportIdA }) =>
             )}
           </div>
 
-          {/* Unmatched Parameters Cards */}
+          {/* Unmatched Tests Comparison Blocks */}
           {(comparison.unmatched_parameters_a.length > 0 || comparison.unmatched_parameters_b.length > 0) && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
               
-              <div className="card" style={{ padding: '1.25rem' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Only in Report A ({comparison.unmatched_parameters_a.length})
+              <div className="card-glass" style={{ padding: '1.5rem', borderRadius: '16px' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--primary)' }}></span>
+                  Exclusive to Report A ({comparison.unmatched_parameters_a.length})
                 </div>
-                <ul style={{ paddingLeft: '1.25rem', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                   {comparison.unmatched_parameters_a.map((t, idx) => (
-                    <li key={idx}>{t}</li>
+                    <span key={idx} style={{ fontSize: '0.775rem', backgroundColor: '#FFFFFF', border: '1px solid var(--border-subtle)', padding: '0.25rem 0.6rem', borderRadius: '6px', color: 'var(--text-secondary)' }}>
+                      {t}
+                    </span>
                   ))}
-                </ul>
+                </div>
               </div>
 
-              <div className="card" style={{ padding: '1.25rem' }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  Only in Report B ({comparison.unmatched_parameters_b.length})
+              <div className="card-glass" style={{ padding: '1.5rem', borderRadius: '16px' }}>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--teal-accent)' }}></span>
+                  Exclusive to Report B ({comparison.unmatched_parameters_b.length})
                 </div>
-                <ul style={{ paddingLeft: '1.25rem', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                   {comparison.unmatched_parameters_b.map((t, idx) => (
-                    <li key={idx}>{t}</li>
+                    <span key={idx} style={{ fontSize: '0.775rem', backgroundColor: '#FFFFFF', border: '1px solid var(--border-subtle)', padding: '0.25rem 0.6rem', borderRadius: '6px', color: 'var(--text-secondary)' }}>
+                      {t}
+                    </span>
                   ))}
-                </ul>
+                </div>
               </div>
 
             </div>
           )}
 
-          {/* Comparison Notes & Ethical Framing */}
-          <div style={{ backgroundColor: '#F8FAFC', border: '1px solid var(--border-subtle)', borderRadius: '0.5rem', padding: '1rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <Info size={18} color="var(--primary)" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              <strong>Clinical Context Note:</strong> Deltas represent raw numeric differences between document dates. Value changes do not automatically indicate improvement or deterioration; factors such as fasting state, time of collection, and inter-laboratory variances must be evaluated by your physician.
+          {/* Clinical Context & Ethical Guardrail Notice */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '12px',
+            padding: '1.25rem',
+            display: 'flex',
+            gap: '0.85rem',
+            alignItems: 'flex-start',
+            boxShadow: 'var(--shadow-subtle)'
+          }}>
+            <ShieldCheck size={20} color="var(--primary)" style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+            <div style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Clinical Context Guidance:</strong> Longitudinal changes reflect mathematical differences between reported points in time. Biometric variations can stem from diurnal rhythms, fasting status, acute hydration levels, or alternate laboratory assay reagents. Always consult your attending clinician before interpreting trends as clinical progression or remission.
             </div>
           </div>
 

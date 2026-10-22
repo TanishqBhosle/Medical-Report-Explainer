@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { LogIn, Lock, Mail, AlertCircle, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 
 interface LoginPageProps {
   onSuccess: () => void;
@@ -34,21 +34,45 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToRegis
   };
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '420px', margin: '3rem auto', padding: '0 1rem' }}>
-      <div className="card" style={{ padding: '2rem' }}>
+    <div className="animate-fade-in" style={{ maxWidth: '440px', margin: '4rem auto', padding: '0 1.25rem' }}>
+      <div className="card-glass" style={{ padding: '2.5rem', borderRadius: '20px', boxShadow: 'var(--shadow-card)' }}>
         
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
-            <LogIn size={22} />
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '12px',
+            background: 'linear-gradient(135deg, #0284C7, #0D9488)',
+            color: '#FFFFFF',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
+          }}>
+            <LogIn size={24} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)' }}>Welcome Back</h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Sign in to access your secure medical reports
+          <h2 style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
+            Welcome Back
+          </h2>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
+            Access your secure laboratory reports and biometric trajectories
           </p>
         </div>
 
         {error && (
-          <div style={{ backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1.25rem', display: 'flex', gap: '0.5rem', alignItems: 'center', color: '#991B1B', fontSize: '0.85rem' }}>
+          <div style={{
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FCA5A5',
+            borderRadius: '10px',
+            padding: '0.85rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            gap: '0.65rem',
+            alignItems: 'center',
+            color: '#991B1B',
+            fontSize: '0.85rem'
+          }}>
             <AlertCircle size={18} style={{ flexShrink: 0 }} />
             <span>{error}</span>
           </div>
@@ -56,7 +80,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToRegis
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
               Email Address
             </label>
             <div style={{ position: 'relative' }}>
@@ -65,39 +89,47 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToRegis
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@example.com"
+                placeholder="patient@example.com"
                 style={{
                   width: '100%',
-                  padding: '0.65rem 0.75rem 0.65rem 2.25rem',
-                  borderRadius: '0.5rem',
+                  padding: '0.75rem 0.85rem 0.75rem 2.4rem',
+                  borderRadius: '10px',
                   border: '1px solid var(--border-strong)',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  backgroundColor: '#FFFFFF',
+                  outline: 'none',
+                  boxShadow: 'var(--shadow-subtle)'
                 }}
               />
-              <Mail size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <Mail size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              Password
-            </label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <label style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Password
+              </label>
+            </div>
             <div style={{ position: 'relative' }}>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="••••••••••••"
                 style={{
                   width: '100%',
-                  padding: '0.65rem 0.75rem 0.65rem 2.25rem',
-                  borderRadius: '0.5rem',
+                  padding: '0.75rem 0.85rem 0.75rem 2.4rem',
+                  borderRadius: '10px',
                   border: '1px solid var(--border-strong)',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  backgroundColor: '#FFFFFF',
+                  outline: 'none',
+                  boxShadow: 'var(--shadow-subtle)'
                 }}
               />
-              <Lock size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <Lock size={16} color="var(--text-muted)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
             </div>
           </div>
 
@@ -105,31 +137,43 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToRegis
             type="submit"
             disabled={loading}
             className="btn-primary"
-            style={{ width: '100%', padding: '0.75rem', marginTop: '0.5rem' }}
+            style={{ width: '100%', padding: '0.85rem', marginTop: '0.5rem', borderRadius: '10px', fontSize: '0.95rem' }}
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? 'Authenticating...' : 'Sign In'}
             <ArrowRight size={16} />
           </button>
         </form>
 
-        {/* Demo Accounts Quick-fill */}
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-subtle)', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+        {/* Demo Fast Fill Pill */}
+        <div style={{
+          marginTop: '1.75rem',
+          paddingTop: '1.25rem',
+          borderTop: '1px solid var(--border-subtle)',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.65rem' }}>
             Quick fill testing credentials:
           </div>
           <button
             type="button"
             onClick={() => fillDemo('patient.demo@example.com')}
             style={{
-              background: 'var(--bg-app)',
-              border: '1px dashed var(--border-strong)',
-              borderRadius: '0.375rem',
-              padding: '0.35rem 0.75rem',
+              background: '#FFFFFF',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '8px',
+              padding: '0.4rem 0.85rem',
               fontSize: '0.775rem',
-              color: 'var(--text-secondary)'
+              color: 'var(--primary)',
+              cursor: 'pointer',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              boxShadow: 'var(--shadow-subtle)'
             }}
           >
-            Fill: patient.demo@example.com
+            <Sparkles size={13} />
+            Fill Demo Account
           </button>
         </div>
 
@@ -138,10 +182,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess, onSwitchToRegis
           <button
             type="button"
             onClick={onSwitchToRegister}
-            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600 }}
+            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer' }}
           >
             Create account
           </button>
+        </div>
+
+        {/* Security badge */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.4rem',
+          marginTop: '1.5rem',
+          fontSize: '0.725rem',
+          color: 'var(--text-muted)'
+        }}>
+          <ShieldCheck size={14} color="var(--teal-accent)" />
+          AES-256 Bit Encrypted • Zero PHI Logging
         </div>
 
       </div>
