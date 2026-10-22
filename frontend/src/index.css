@@ -1,0 +1,179 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-app: #F7F9FC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-subtle: #F1F5F9;
+  --text-primary: #172B4D;
+  --text-secondary: #526277;
+  --text-muted: #8993A4;
+  --border-subtle: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-light: #EFF6FF;
+  --teal-accent: #0F766E;
+  --teal-light: #F0FDFA;
+
+  --flag-low-bg: #FEF3C7;
+  --flag-low-text: #B45309;
+  --flag-low-border: #FCD34D;
+
+  --flag-high-bg: #FFEDD5;
+  --flag-high-text: #C2410C;
+  --flag-high-border: #FDBA74;
+
+  --flag-normal-bg: #CCFBF1;
+  --flag-normal-text: #0F766E;
+  --flag-normal-border: #99F6E4;
+
+  --flag-critical-bg: #FEE2E2;
+  --flag-critical-text: #B91C1C;
+  --flag-critical-border: #FCA5A5;
+
+  --flag-unknown-bg: #F1F5F9;
+  --flag-unknown-text: #475569;
+  --flag-unknown-border: #CBD5E1;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .brand-font {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease-in-out;
+}
+
+input, textarea, select {
+  font-family: inherit;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Utility Classes */
+.btn-primary {
+  background-color: var(--primary);
+  color: #FFFFFF;
+  border: 1px solid transparent;
+  padding: 0.6rem 1.25rem;
+  font-weight: 500;
+  font-size: 0.925rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.1);
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  padding: 0.6rem 1.25rem;
+  font-weight: 500;
+  font-size: 0.925rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.btn-secondary:hover {
+  background-color: var(--bg-surface-subtle);
+  border-color: #94A3B8;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.775rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  border-width: 1px;
+  border-style: solid;
+}
+.badge-normal {
+  background-color: var(--flag-normal-bg);
+  color: var(--flag-normal-text);
+  border-color: var(--flag-normal-border);
+}
+.badge-low {
+  background-color: var(--flag-low-bg);
+  color: var(--flag-low-text);
+  border-color: var(--flag-low-border);
+}
+.badge-high {
+  background-color: var(--flag-high-bg);
+  color: var(--flag-high-text);
+  border-color: var(--flag-high-border);
+}
+.badge-critical {
+  background-color: var(--flag-critical-bg);
+  color: var(--flag-critical-text);
+  border-color: var(--flag-critical-border);
+}
+.badge-unknown, .badge-needs_review {
+  background-color: var(--flag-unknown-bg);
+  color: var(--flag-unknown-text);
+  border-color: var(--flag-unknown-border);
+}
+
+.card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
