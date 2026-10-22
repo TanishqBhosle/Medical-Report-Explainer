@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import type { Report } from '../types';
-import { UploadCloud, FileText, CheckCircle2, ArrowRight, HelpCircle, Activity } from 'lucide-react';
+import { 
+  UploadCloud, FileText, CheckCircle2, ArrowRight, Activity, 
+  GitCompare, Calendar, ChevronRight, Sparkles
+} from 'lucide-react';
 
 interface DashboardPageProps {
   onNavigateUpload: () => void;
@@ -34,181 +37,238 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
   }, []);
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '2rem auto', padding: '0 1.5rem' }}>
+    <div className="animate-fade-in" style={{ maxWidth: '1180px', margin: '2rem auto 4rem', padding: '0 1.5rem' }}>
       
-      {/* Header Greeting */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Top Greeting Header */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '2.25rem', 
+        flexWrap: 'wrap', 
+        gap: '1rem',
+        borderBottom: '1px solid var(--border-subtle)',
+        paddingBottom: '1.5rem'
+      }}>
         <div>
-          <h1 style={{ fontSize: '1.875rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Welcome, {user?.display_name || user?.email.split('@')[0]}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <span className="status-dot status-dot-green"></span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Patient Workspace Active
+            </span>
+          </div>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+            Welcome back, {user?.display_name || user?.email.split('@')[0]}
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', marginTop: '0.25rem' }}>
-            Review, explain, and compare your laboratory reports in simple language.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.925rem', marginTop: '0.2rem' }}>
+            Translate, track, and monitor your clinical diagnostic documents with evidence traceability.
           </p>
         </div>
 
-        <button onClick={onNavigateUpload} className="btn-primary" style={{ padding: '0.7rem 1.35rem' }}>
-          <UploadCloud size={18} />
-          Upload New Report
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button 
+            onClick={onNavigateCompare}
+            className="btn-secondary"
+            style={{ borderRadius: 'var(--radius-lg)' }}
+          >
+            <GitCompare size={17} color="var(--primary)" />
+            Compare Trends
+          </button>
+          
+          <button 
+            onClick={onNavigateUpload} 
+            className="btn-primary" 
+            style={{ borderRadius: 'var(--radius-lg)' }}
+          >
+            <UploadCloud size={18} />
+            Analyze New Report
+          </button>
+        </div>
       </div>
 
-      {/* Quick Summary Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', marginBottom: '2.5rem' }}>
+      {/* Metrics Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2.5rem' }}>
         
-        <div className="card" style={{ padding: '1.25rem' }}>
+        <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Total Reports</span>
-            <FileText size={18} color="var(--primary)" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Archived Reports</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={17} color="var(--primary)" />
+            </div>
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
             {reports.length}
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Stored in private encrypted volume
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+            Encrypted storage & zero PHI leaks
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.25rem' }}>
+        <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--teal-accent)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Active Health Focus</span>
-            <Activity size={18} color="var(--teal-accent)" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Flagging Engine</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--teal-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Activity size={17} color="var(--teal-accent)" />
+            </div>
           </div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--teal-accent)' }}>
-            Grounded RAG
+            Deterministic
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            MedlinePlus & CDC Reference standards
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+            Non-LLM mathematical verification
           </div>
         </div>
 
-        <div className="card" style={{ padding: '1.25rem' }}>
+        <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid #8B5CF6' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Longitudinal Compare</span>
-            <CheckCircle2 size={18} color="#059669" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Evidence Sources</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Sparkles size={17} color="#8B5CF6" />
+            </div>
+          </div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#6D28D9' }}>
+            CDC & NIH
+          </div>
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+            Validated clinical knowledge base
+          </div>
+        </div>
+
+        <div className="card" style={{ padding: '1.5rem', borderLeft: '4px solid #10B981' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Longitudinal Delta</span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CheckCircle2 size={17} color="#10B981" />
+            </div>
           </div>
           <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Available
+            Unit Guarded
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-            Match normalized tests & units
+          <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+            Incompatible units rejected
           </div>
         </div>
 
       </div>
 
-      {/* Recent Reports Section */}
-      <div className="card" style={{ padding: '1.5rem', marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+      {/* Recent Reports Table Card */}
+      <div className="card" style={{ overflow: 'hidden' }}>
+        
+        <div style={{ 
+          padding: '1.25rem 1.75rem', 
+          borderBottom: '1px solid var(--border-subtle)', 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          backgroundColor: '#FFFFFF'
+        }}>
           <div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Recent Laboratory Reports
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Recent Diagnostic Documents
             </h2>
-            <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)' }}>
-              Select a report to view extracted observations and plain language explanations.
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+              Click any report to view extracted observations, plain explanations, and provenance
             </p>
           </div>
-          {reports.length > 1 && (
-            <button onClick={onNavigateCompare} className="btn-secondary" style={{ padding: '0.45rem 0.9rem', fontSize: '0.825rem' }}>
-              Compare Reports
-            </button>
-          )}
+
+          <button onClick={onNavigateUpload} className="btn-ghost" style={{ fontSize: '0.825rem' }}>
+            + Upload New
+          </button>
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-            Loading your medical reports...
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            Loading your diagnostic records...
           </div>
         ) : reports.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-app)', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-              <FileText size={24} />
+          <div style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '16px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+              <UploadCloud size={28} />
             </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              No reports uploaded yet
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+              No laboratory reports yet
             </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '420px', margin: '0 auto 1.5rem' }}>
-              Upload your first lab result (blood test, metabolic panel, lipid profile) to get a clear breakdown.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '420px', margin: '0 auto 1.5rem' }}>
+              Upload your first blood test, lipid panel, metabolic panel, or pathology report to receive calm plain-language explanations.
             </p>
-            <button onClick={onNavigateUpload} className="btn-primary" style={{ padding: '0.65rem 1.25rem' }}>
-              <UploadCloud size={16} />
+            <button onClick={onNavigateUpload} className="btn-primary" style={{ padding: '0.7rem 1.75rem' }}>
               Upload Your First Report
+              <ArrowRight size={17} />
             </button>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {reports.map((r) => (
-              <div
-                key={r.id}
-                onClick={() => onNavigateReport(r.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '1rem 1.25rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid var(--border-subtle)',
-                  cursor: 'pointer',
-                  backgroundColor: '#FFFFFF',
-                  transition: 'background 0.15s ease'
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-app)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '8px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={20} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                      {r.original_filename}
-                    </div>
-                    <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)', display: 'flex', gap: '0.75rem', marginTop: '0.15rem' }}>
-                      <span>Date: {r.document_date || 'Not specified'}</span>
-                      <span>•</span>
-                      <span>{(r.file_size_bytes / 1024).toFixed(1)} KB</span>
-                    </div>
-                  </div>
-                </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: 'var(--bg-app)', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
+                  <th style={{ padding: '0.85rem 1.5rem', fontWeight: 600 }}>Document Name</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Report Date</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Pages</th>
+                  <th style={{ padding: '0.85rem 1rem', fontWeight: 600 }}>Status</th>
+                  <th style={{ padding: '0.85rem 1.5rem', fontWeight: 600, textAlign: 'right' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map((r) => (
+                  <tr 
+                    key={r.id} 
+                    onClick={() => onNavigateReport(r.id)}
+                    style={{ 
+                      borderBottom: '1px solid var(--border-subtle)', 
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-subtle)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <td style={{ padding: '1rem 1.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                          <FileText size={16} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {r.original_filename}
+                          </div>
+                          <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                            {(r.file_size_bytes / 1024).toFixed(1)} KB • {r.media_type}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <span className={`badge badge-${r.processing_status.toLowerCase()}`}>
-                    {r.processing_status.replace('_', ' ')}
-                  </span>
-                  <ArrowRight size={16} color="var(--text-muted)" />
-                </div>
-              </div>
-            ))}
+                    <td style={{ padding: '1rem 1rem', color: 'var(--text-secondary)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <Calendar size={14} color="var(--text-muted)" />
+                        {r.document_date || 'Not specified'}
+                      </div>
+                    </td>
+
+                    <td style={{ padding: '1rem 1rem', color: 'var(--text-secondary)' }}>
+                      {r.page_count || 1} page{r.page_count && r.page_count > 1 ? 's' : ''}
+                    </td>
+
+                    <td style={{ padding: '1rem 1rem' }}>
+                      <span className={`badge badge-${r.processing_status.toLowerCase()}`}>
+                        {r.processing_status.replace('_', ' ')}
+                      </span>
+                    </td>
+
+                    <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
+                      <button 
+                        className="btn-ghost"
+                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600 }}
+                      >
+                        Inspect
+                        <ChevronRight size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
-      </div>
-
-      {/* Patient Education & Guidelines Callout */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
-        
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <HelpCircle size={20} color="var(--primary)" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-            <div>
-              <strong style={{ fontSize: '0.925rem', color: 'var(--text-primary)' }}>Why Reference Ranges Vary</strong>
-              <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.5 }}>
-                Different labs use different instruments, reagent lots, and statistical populations. An 'out of range' marker at one facility may fall within range at another.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-            <Activity size={20} color="var(--teal-accent)" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-            <div>
-              <strong style={{ fontSize: '0.925rem', color: 'var(--text-primary)' }}>Preparing for Your Doctor's Visit</strong>
-              <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.5 }}>
-                Write down any current symptoms, recent dietary or exercise changes, and medications you are taking so your physician has full clinical context.
-              </p>
-            </div>
-          </div>
-        </div>
 
       </div>
 
