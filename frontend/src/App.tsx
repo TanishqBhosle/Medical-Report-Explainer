@@ -89,6 +89,7 @@ const AppContent: React.FC = () => {
             reportId={selectedReportId}
             onBack={() => setCurrentTab('history')}
             onDeleted={() => setCurrentTab('history')}
+            onNavigateCompare={navigateToCompare}
           />
         )}
 

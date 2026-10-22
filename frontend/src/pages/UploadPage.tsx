@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { api } from '../services/api';
 import type { JobStatus } from '../types';
-import { UploadCloud, FileText, AlertCircle, X, ArrowRight, Loader2 } from 'lucide-react';
+import { 
+  UploadCloud, FileText, AlertCircle, X, ArrowRight, Loader2, 
+  ShieldCheck, Lock, CheckCircle2, Sparkles, FileCheck
+} from 'lucide-react';
 
 interface UploadPageProps {
   onProcessingComplete: (reportId: string) => void;
@@ -52,7 +55,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onProcessingComplete, on
     const ext = f.name.split('.').pop()?.toLowerCase() || '';
 
     if (!validExtensions.includes(ext)) {
-      setError('Please upload a PDF document, or PNG/JPG image file.');
+      setError('Unsupported file type. Please upload a PDF report or PNG/JPG image.');
       return;
     }
 
@@ -100,8 +103,8 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onProcessingComplete, on
           }, 800);
         } else if (status.status === 'failed') {
           clearInterval(interval);
-          setError(status.safe_error_message || 'Processing failed. Please inspect the file.');
           setUploading(false);
+          setError(status.safe_error_message || 'Processing failed. Please inspect your document and re-upload.');
         }
       } catch (err: any) {
         console.error('Job polling error', err);
@@ -112,185 +115,354 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onProcessingComplete, on
   }, [jobId, activeReportId, onProcessingComplete]);
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '680px', margin: '2rem auto', padding: '0 1rem' }}>
+    <div className="animate-fade-in" style={{ maxWidth: '820px', margin: '2.5rem auto 4rem', padding: '0 1.5rem' }}>
       
-      <div className="card" style={{ padding: '2rem' }}>
-        
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
-            <UploadCloud size={24} />
-          </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            Upload Medical Report
-          </h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Accepts PDF blood tests, metabolic panels, or scanned image reports (Max 15MB)
-          </p>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '0.45rem', 
+          backgroundColor: 'var(--primary-light)', 
+          color: 'var(--primary)', 
+          padding: '0.35rem 0.85rem', 
+          borderRadius: '9999px', 
+          fontSize: '0.8rem', 
+          fontWeight: 700, 
+          marginBottom: '0.75rem',
+          border: '1px solid #BAE6FD'
+        }}>
+          <Sparkles size={14} />
+          Clinical Pipeline v1.0
         </div>
+        <h1 style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em' }}>
+          Analyze a Laboratory Report
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', maxWidth: '540px', margin: '0.5rem auto 0' }}>
+          Upload your blood test, metabolic panel, or diagnostic paper to extract structured parameters and evidence-backed explanations.
+        </p>
+      </div>
 
-        {error && (
-          <div style={{ backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '0.5rem', padding: '0.85rem', marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', color: '#991B1B', fontSize: '0.85rem' }}>
-            <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Processing State Stepper */}
-        {uploading ? (
-          <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
-            <div style={{ width: '56px', height: '56px', margin: '0 auto 1.25rem', borderRadius: '50%', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-              <Loader2 size={28} className="animate-spin" />
-            </div>
-
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-              {jobStatus?.stage === 'parsing_document' && 'Reading Text & Tables...'}
-              {jobStatus?.stage === 'extracting_observations' && 'Extracting Diagnostic Observations...'}
-              {jobStatus?.stage === 'normalizing_and_flagging' && 'Comparing Against Laboratory Ranges...'}
-              {jobStatus?.stage === 'done' && 'Report Ready! Loading Explanations...'}
-              {!jobStatus?.stage && 'Uploading Securely...'}
-            </h3>
-
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto 1.5rem' }}>
-              Deterministic value extraction in progress. This typically takes 3 to 6 seconds.
-            </p>
-
-            {/* Progress bar */}
-            <div style={{ width: '100%', height: '8px', backgroundColor: 'var(--border-subtle)', borderRadius: '9999px', overflow: 'hidden', marginBottom: '1rem' }}>
-              <div
-                style={{
-                  height: '100%',
-                  backgroundColor: 'var(--primary)',
-                  width: `${jobStatus?.progress_percent || 15}%`,
-                  transition: 'width 0.4s ease'
-                }}
-              />
-            </div>
-
-            <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
-              {jobStatus?.progress_percent || 15}% completed
-            </div>
-          </div>
-        ) : (
+      {error && (
+        <div style={{ 
+          backgroundColor: '#FEF2F2', 
+          border: '1px solid #FCA5A5', 
+          borderRadius: 'var(--radius-lg)', 
+          padding: '1rem 1.25rem', 
+          marginBottom: '1.75rem', 
+          display: 'flex', 
+          gap: '0.75rem', 
+          alignItems: 'flex-start',
+          boxShadow: 'var(--shadow-xs)'
+        }}>
+          <AlertCircle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
           <div>
-            
-            {/* Drag & Drop Area */}
+            <div style={{ fontWeight: 700, color: '#991B1B', fontSize: '0.875rem' }}>
+              Upload Notice
+            </div>
+            <p style={{ fontSize: '0.825rem', color: '#B91C1C', marginTop: '0.2rem', lineHeight: 1.45 }}>
+              {error}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Main Upload Card */}
+      <div className="card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+        
+        {/* Dropzone */}
+        {!uploading ? (
+          <div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".pdf,.png,.jpg,.jpeg"
+              style={{ display: 'none' }}
+            />
+
             {!file ? (
               <div
                 onDragEnter={handleDrag}
-                onDragOver={handleDrag}
                 onDragLeave={handleDrag}
+                onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
                 style={{
-                  border: `2px dashed ${dragActive ? 'var(--primary)' : 'var(--border-strong)'}`,
+                  border: dragActive ? '2px dashed var(--primary)' : '2px dashed #CBD5E1',
                   backgroundColor: dragActive ? 'var(--primary-light)' : 'var(--bg-app)',
-                  borderRadius: '0.75rem',
-                  padding: '3rem 1.5rem',
+                  borderRadius: 'var(--radius-xl)',
+                  padding: '3rem 2rem',
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
-                  marginBottom: '1.5rem'
+                  boxShadow: dragActive ? '0 0 0 4px var(--primary-glow)' : 'none'
                 }}
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                />
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#FFFFFF', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)' }}>
-                  <UploadCloud size={24} />
+                <div style={{ 
+                  width: '64px', 
+                  height: '64px', 
+                  borderRadius: '16px', 
+                  backgroundColor: '#FFFFFF', 
+                  color: 'var(--primary)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  margin: '0 auto 1.25rem',
+                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.12)',
+                  border: '1px solid #BAE6FD'
+                }}>
+                  <UploadCloud size={32} />
                 </div>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                  Click to select report or drag and drop here
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+                  Click to upload or drag & drop
                 </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  PDF, PNG, JPG up to 15MB
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+                  Supported formats: <strong>PDF, PNG, JPG</strong> (Maximum file size: 15 MB)
+                </p>
+
+                <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.725rem', fontWeight: 600, backgroundColor: '#FFFFFF', padding: '0.2rem 0.6rem', borderRadius: '4px', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>PDF (Single & Multi-page)</span>
+                  <span style={{ fontSize: '0.725rem', fontWeight: 600, backgroundColor: '#FFFFFF', padding: '0.2rem 0.6rem', borderRadius: '4px', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>PNG / JPG Scans</span>
                 </div>
               </div>
             ) : (
-              /* Selected File Card */
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', border: '1px solid var(--border-subtle)', borderRadius: '0.5rem', backgroundColor: 'var(--bg-app)', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: '6px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={20} />
+              <div style={{ 
+                backgroundColor: 'var(--bg-app)', 
+                border: '1px solid var(--border-subtle)', 
+                borderRadius: 'var(--radius-lg)', 
+                padding: '1.25rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '1.5rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <FileText size={22} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
                       {file.name}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {(file.size / (1024 * 1024)).toFixed(2)} MB • {file.type || 'Document'}
+                    <div style={{ fontSize: '0.775rem', color: 'var(--text-muted)' }}>
+                      {(file.size / (1024 * 1024)).toFixed(2)} MB • Ready for ingestion
                     </div>
                   </div>
                 </div>
 
                 <button
-                  type="button"
                   onClick={() => setFile(null)}
-                  style={{ border: 'none', background: 'none', color: 'var(--text-muted)', padding: '0.35rem' }}
+                  style={{
+                    border: 'none',
+                    background: '#FFFFFF',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--text-muted)',
+                    boxShadow: 'var(--shadow-xs)'
+                  }}
+                  title="Remove file"
                 >
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               </div>
             )}
 
-            {/* Optional Document Date */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
-                Report Date (Optional)
-              </label>
-              <input
-                type="date"
-                value={documentDate}
-                onChange={(e) => setDocumentDate(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem 0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid var(--border-strong)',
-                  fontSize: '0.875rem'
-                }}
-              />
-              <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                Helpful for tracking longitudinal progress across multiple reports.
+            {/* Form Inputs */}
+            {file && (
+              <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+                    Document Date (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={documentDate}
+                    onChange={(e) => setDocumentDate(e.target.value)}
+                    className="input-field"
+                    style={{ width: '100%', maxWidth: '320px' }}
+                  />
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                    Helps organize longitudinal timeline comparisons across repeated lab visits.
+                  </p>
+                </div>
+
+                <div style={{ 
+                  backgroundColor: '#FFFFFF', 
+                  border: '1px solid var(--border-subtle)', 
+                  borderRadius: 'var(--radius-md)', 
+                  padding: '1rem',
+                  display: 'flex',
+                  gap: '0.75rem',
+                  alignItems: 'flex-start'
+                }}>
+                  <input
+                    type="checkbox"
+                    id="consent-check"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    style={{ marginTop: '0.25rem', width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                  />
+                  <label htmlFor="consent-check" style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', cursor: 'pointer', lineHeight: 1.45 }}>
+                    <strong>Informed Processing Consent:</strong> I authorize ReportExplainer to extract and summarize the laboratory information in this document for educational purposes. I understand that my uploaded document is never used for model training and can be permanently deleted at any time.
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                  <button onClick={onCancel} className="btn-secondary">
+                    Cancel
+                  </button>
+                  <button onClick={handleStartUpload} className="btn-primary" disabled={!consent}>
+                    Start Document Analysis
+                    <ArrowRight size={17} />
+                  </button>
+                </div>
               </div>
+            )}
+          </div>
+        ) : (
+          /* Multi-Stage Live Processing Animation */
+          <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+            <div style={{ 
+              width: '60px', 
+              height: '60px', 
+              borderRadius: '50%', 
+              backgroundColor: 'var(--primary-light)', 
+              color: 'var(--primary)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              margin: '0 auto 1.5rem',
+              border: '2px solid #BAE6FD'
+            }}>
+              <Loader2 size={30} className="animate-spin" />
             </div>
 
-            {/* Mandatory Consent Checkbox */}
-            <div style={{ display: 'flex', gap: '0.65rem', alignItems: 'flex-start', padding: '0.85rem', backgroundColor: '#F8FAFC', borderRadius: '0.5rem', border: '1px solid var(--border-subtle)', marginBottom: '1.5rem' }}>
-              <input
-                type="checkbox"
-                id="consent-box"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                style={{ marginTop: '0.2rem', accentColor: 'var(--primary)' }}
-              />
-              <label htmlFor="consent-box" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                I acknowledge that this system is an educational explainer and <strong>does not provide medical diagnoses or alter treatments</strong>. I consent to processing this report text against clinical reference guidelines.
-              </label>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
+              Analyzing Document & Observations...
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '2rem' }}>
+              Stage: <strong>{jobStatus?.stage || 'Extracting tables and reference intervals'}</strong> ({jobStatus?.progress_percent || 25}%)
+            </p>
+
+            {/* Progress Bar */}
+            <div style={{ 
+              width: '100%', 
+              height: '8px', 
+              backgroundColor: 'var(--bg-subtle)', 
+              borderRadius: '9999px', 
+              overflow: 'hidden', 
+              marginBottom: '2rem',
+              border: '1px solid var(--border-subtle)'
+            }}>
+              <div style={{ 
+                height: '100%', 
+                width: `${jobStatus?.progress_percent || 30}%`, 
+                background: 'linear-gradient(90deg, #0284C7 0%, #0D9488 100%)', 
+                borderRadius: '9999px',
+                transition: 'width 0.4s ease'
+              }}></div>
             </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-              <button onClick={onCancel} className="btn-secondary">
-                Cancel
-              </button>
-              <button
-                onClick={handleStartUpload}
-                disabled={!file || !consent}
-                className="btn-primary"
-              >
-                Start Processing
-                <ArrowRight size={16} />
-              </button>
-            </div>
+            {/* Step Checkpoints */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', textAlign: 'left' }}>
+              
+              <div style={{ 
+                padding: '0.85rem', 
+                borderRadius: 'var(--radius-md)', 
+                backgroundColor: (jobStatus?.progress_percent || 0) >= 25 ? 'var(--teal-light)' : 'var(--bg-app)',
+                border: (jobStatus?.progress_percent || 0) >= 25 ? '1px solid #99F6E4' : '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: (jobStatus?.progress_percent || 0) >= 25 ? 'var(--teal-accent)' : 'var(--text-muted)'
+              }}>
+                <CheckCircle2 size={16} />
+                <span>Anti-Malware Check</span>
+              </div>
 
+              <div style={{ 
+                padding: '0.85rem', 
+                borderRadius: 'var(--radius-md)', 
+                backgroundColor: (jobStatus?.progress_percent || 0) >= 50 ? 'var(--teal-light)' : 'var(--bg-app)',
+                border: (jobStatus?.progress_percent || 0) >= 50 ? '1px solid #99F6E4' : '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: (jobStatus?.progress_percent || 0) >= 50 ? 'var(--teal-accent)' : 'var(--text-muted)'
+              }}>
+                <CheckCircle2 size={16} />
+                <span>Table Extraction</span>
+              </div>
+
+              <div style={{ 
+                padding: '0.85rem', 
+                borderRadius: 'var(--radius-md)', 
+                backgroundColor: (jobStatus?.progress_percent || 0) >= 75 ? 'var(--teal-light)' : 'var(--bg-app)',
+                border: (jobStatus?.progress_percent || 0) >= 75 ? '1px solid #99F6E4' : '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: (jobStatus?.progress_percent || 0) >= 75 ? 'var(--teal-accent)' : 'var(--text-muted)'
+              }}>
+                <CheckCircle2 size={16} />
+                <span>Range Flagging</span>
+              </div>
+
+              <div style={{ 
+                padding: '0.85rem', 
+                borderRadius: 'var(--radius-md)', 
+                backgroundColor: (jobStatus?.progress_percent || 0) >= 100 ? 'var(--teal-light)' : 'var(--bg-app)',
+                border: (jobStatus?.progress_percent || 0) >= 100 ? '1px solid #99F6E4' : '1px solid var(--border-subtle)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: (jobStatus?.progress_percent || 0) >= 100 ? 'var(--teal-accent)' : 'var(--text-muted)'
+              }}>
+                <CheckCircle2 size={16} />
+                <span>Evidence RAG</span>
+              </div>
+
+            </div>
           </div>
         )}
 
+      </div>
+
+      {/* Security & Privacy Badges */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        gap: '2rem', 
+        flexWrap: 'wrap',
+        fontSize: '0.825rem',
+        color: 'var(--text-muted)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <Lock size={15} color="var(--primary)" />
+          <span>Encrypted In Transit & At Rest</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <ShieldCheck size={15} color="var(--teal-accent)" />
+          <span>Tenant Isolated & Scoped</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <FileCheck size={15} color="#4F46E5" />
+          <span>Zero External Model Training</span>
+        </div>
       </div>
 
     </div>
