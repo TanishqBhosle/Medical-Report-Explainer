@@ -107,6 +107,14 @@ class ApiClient {
     return this.handleResponse(res);
   }
 
+  async retryReport(reportId: string): Promise<{ report_id: string; job_id: string; status: string; status_url: string }> {
+    const res = await fetch(`${API_BASE_URL}/reports/${reportId}/retry`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    });
+    return this.handleResponse(res);
+  }
+
   // Jobs
   async getJobStatus(jobId: string): Promise<JobStatus> {
     const res = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {

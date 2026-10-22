@@ -4,7 +4,7 @@ import type { Report, Observation, ExplanationResponse, CitationItem } from '../
 import {
   ArrowLeft, Trash2, AlertCircle, BookOpen,
   HelpCircle, Send, ExternalLink, ShieldAlert, Sparkles, Eye, Edit2, AlertTriangle,
-  Search, CheckCircle2, Copy, Check, Activity, ShieldCheck
+  Search, CheckCircle2, Copy, Check, Activity, ShieldCheck, RefreshCw
 } from 'lucide-react';
 
 interface ReportDetailsPageProps {
@@ -19,6 +19,7 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
   const [observations, setObservations] = useState<Observation[]>([]);
   const [explanation, setExplanation] = useState<ExplanationResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Filter & Search
@@ -41,30 +42,52 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
   const [editNotes, setEditNotes] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [rep, obsList] = await Promise.all([
-          api.getReport(reportId),
-          api.getObservations(reportId)
-        ]);
-        setReport(rep);
-        setObservations(obsList.observations);
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [rep, obsList] = await Promise.all([
+        api.getReport(reportId),
+        api.getObservations(reportId)
+      ]);
+      setReport(rep);
+      setObservations(obsList.observations);
 
-        // Fetch or generate plain-language explanation
-        const expl = await api.generateExplanation(reportId);
-        setExplanation(expl);
-      } catch (err: any) {
-        console.error('Error fetching report details', err);
-        setError(err.message || 'Failed to load report data.');
-      } finally {
-        setLoading(false);
-      }
-    };
+      // Fetch or generate plain-language explanation
+      const expl = await api.generateExplanation(reportId);
+      setExplanation(expl);
+    } catch (err: any) {
+      console.error('Error fetching report details', err);
+      setError(err.message || 'Failed to load report data.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [reportId]);
+
+  const handleRetry = async () => {
+    setRetrying(true);
+    try {
+      const retryJob = await api.retryReport(reportId);
+      // Poll job status until done
+      const startTime = Date.now();
+      while (Date.now() - startTime < 30000) {
+        await new Promise((r) => setTimeout(r, 1200));
+        const status = await api.getJobStatus(retryJob.job_id);
+        if (status.status === 'completed' || status.status === 'failed') {
+          break;
+        }
+      }
+      await fetchData();
+    } catch (err: any) {
+      alert(`Retry failed: ${err.message}`);
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this report? This will permanently remove the original file, observations, and derived explanations.')) {
@@ -306,40 +329,94 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
               </div>
             </div>
 
-            <div style={{
-              backgroundColor: '#FFFFFF',
-              border: '1px solid rgba(13, 148, 136, 0.25)',
-              borderRadius: '12px',
-              padding: '0.65rem 1rem',
-              textAlign: 'center',
-              boxShadow: 'var(--shadow-subtle)'
-            }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0D9488', lineHeight: 1.1 }}>
-                {normalCount}
-              </div>
-              <div style={{ fontSize: '0.7rem', color: '#0D9488', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em', marginTop: '0.2rem' }}>
-                In Range
-              </div>
-            </div>
+            {observations.length > 0 ? (
+              <>
+                <div style={{
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid rgba(13, 148, 136, 0.25)',
+                  borderRadius: '12px',
+                  padding: '0.65rem 1rem',
+                  textAlign: 'center',
+                  boxShadow: 'var(--shadow-subtle)'
+                }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0D9488', lineHeight: 1.1 }}>
+                    {normalCount}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#0D9488', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em', marginTop: '0.2rem' }}>
+                    In Range
+                  </div>
+                </div>
 
-            <div style={{
-              backgroundColor: flaggedCount > 0 ? '#FFFBEB' : '#FFFFFF',
-              border: flaggedCount > 0 ? '1px solid #FCD34D' : '1px solid var(--border-subtle)',
-              borderRadius: '12px',
-              padding: '0.65rem 1rem',
-              textAlign: 'center',
-              boxShadow: 'var(--shadow-subtle)'
-            }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800, color: flaggedCount > 0 ? '#D97706' : 'var(--text-muted)', lineHeight: 1.1 }}>
-                {flaggedCount}
+                <div style={{
+                  backgroundColor: flaggedCount > 0 ? '#FFFBEB' : '#FFFFFF',
+                  border: flaggedCount > 0 ? '1px solid #FCD34D' : '1px solid var(--border-subtle)',
+                  borderRadius: '12px',
+                  padding: '0.65rem 1rem',
+                  textAlign: 'center',
+                  boxShadow: 'var(--shadow-subtle)'
+                }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: flaggedCount > 0 ? '#D97706' : 'var(--text-muted)', lineHeight: 1.1 }}>
+                    {flaggedCount}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: flaggedCount > 0 ? '#B45309' : 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em', marginTop: '0.2rem' }}>
+                    Flagged
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{
+                backgroundColor: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: '12px',
+                padding: '0.65rem 1rem',
+                textAlign: 'center',
+                boxShadow: 'var(--shadow-subtle)'
+              }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#DC2626', lineHeight: 1.1 }}>
+                  0
+                </div>
+                <div style={{ fontSize: '0.7rem', color: '#991B1B', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em', marginTop: '0.2rem' }}>
+                  Extracted
+                </div>
               </div>
-              <div style={{ fontSize: '0.7rem', color: flaggedCount > 0 ? '#B45309' : 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em', marginTop: '0.2rem' }}>
-                Flagged
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Zero Observations Extracted Alert Banner */}
+      {observations.length === 0 && (
+        <div style={{
+          backgroundColor: '#FFFBEB',
+          border: '1px solid #FCD34D',
+          borderRadius: '16px',
+          padding: '1.75rem',
+          marginBottom: '2rem',
+          display: 'flex',
+          gap: '1rem',
+          alignItems: 'flex-start',
+          boxShadow: 'var(--shadow-subtle)'
+        }}>
+          <AlertCircle size={26} color="#D97706" style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+          <div style={{ flex: 1 }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#92400E', marginBottom: '0.35rem' }}>
+              No Laboratory Results Extracted
+            </h3>
+            <p style={{ fontSize: '0.875rem', color: '#B45309', lineHeight: 1.6, marginBottom: '1.15rem' }}>
+              We could not reliably extract any laboratory results from this report. No conclusion can be made about whether your blood counts or diagnostic markers are high, low, or within range. Please verify the uploaded document or retry extraction below.
+            </p>
+            <button
+              onClick={handleRetry}
+              disabled={retrying}
+              className="btn-primary"
+              style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}
+            >
+              <RefreshCw size={15} className={retrying ? 'spin' : ''} style={{ animation: retrying ? 'spin 1s linear infinite' : 'none' }} />
+              {retrying ? 'Reprocessing Document...' : 'Retry Processing'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Edge-Case / Discrepancy Alert Banners */}
       {report.unreadable_pages && report.unreadable_pages > 0 ? (
@@ -445,10 +522,17 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.725rem', backgroundColor: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', padding: '0.35rem 0.65rem', borderRadius: '6px', fontWeight: 600 }}>
-              <ShieldCheck size={14} />
-              AI Deterministically Verified
-            </div>
+            {observations.length > 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.725rem', backgroundColor: '#F0FDFA', color: '#0F766E', border: '1px solid #CCFBF1', padding: '0.35rem 0.65rem', borderRadius: '6px', fontWeight: 600 }}>
+                <ShieldCheck size={14} />
+                AI Deterministically Verified
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.725rem', backgroundColor: '#FEF2F2', color: '#991B1B', border: '1px solid #FECACA', padding: '0.35rem 0.65rem', borderRadius: '6px', fontWeight: 600 }}>
+                <AlertCircle size={14} />
+                Zero Observations Verified
+              </div>
+            )}
           </div>
 
           <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: 1.65, marginBottom: '1.5rem', fontWeight: 450 }}>
