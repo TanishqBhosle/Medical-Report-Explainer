@@ -127,45 +127,78 @@ CURATED_KNOWLEDGE = [
                 "text": "Alanine Aminotransferase (ALT) is an enzyme found mostly in liver cells. Typical upper reference limits are 35 to 55 U/L. ALT is a relatively specific indicator of liver inflammation or hepatocellular stress."
             }
         ]
+    },
+    {
+        "source": {
+            "title": "Clinical Guidance for Dengue Laboratory Testing and Serology",
+            "publisher": "Centers for Disease Control and Prevention (CDC) & WHO",
+            "source_url": "https://www.cdc.gov/dengue/healthcare-providers/testing/testing-guidance.html",
+            "source_type": "clinical_consensus",
+            "published_at": date(2025, 1, 10),
+            "license_notes": "Public Domain (U.S. CDC & WHO Guidelines)"
+        },
+        "chunks": [
+            {
+                "canonical_test_name": "Dengue NS1 Antigen",
+                "text": "Dengue non-structural protein 1 (NS1) antigen is a virus-specific glycoprotein produced in high concentrations during acute dengue virus infection. It is detectable in patient serum from the first day of fever onset up to day 5-7. An index value < 1.0 is considered negative (non-reactive), indicating that dengue NS1 antigen was not detected. An index value > 1.0 is considered positive, indicating active acute dengue virus infection. Testing should be interpreted in conjunction with patient symptoms and antibody kinetics."
+            },
+            {
+                "canonical_test_name": "Dengue IgM Antibody",
+                "text": "Dengue virus-specific IgM antibodies are produced by the immune system in response to primary or secondary dengue infection. IgM antibodies typically become detectable 4 to 5 days after symptom onset and can persist for several months. An index value < 1.0 is considered negative (absence of detectable IgM). An index value > 1.0 indicates a positive result consistent with recent or ongoing dengue infection. In patients tested early in the first 1-4 days of fever, negative IgM does not exclude dengue, and NS1 antigen testing is recommended."
+            },
+            {
+                "canonical_test_name": "Red Blood Cell Count",
+                "text": "Red Blood Cell (RBC) count measures the total number of circulating erythrocytes per microliter of blood. Typical reference intervals are 4.5 to 5.9 10^6/uL for men and 4.0 to 5.2 10^6/uL for women. Reduced counts suggest anemia or blood loss, whereas elevated counts may point to dehydration, hemoconcentration, or chronic respiratory adaptation."
+            },
+            {
+                "canonical_test_name": "Neutrophils",
+                "text": "Neutrophils are the predominant leukocyte subtype in blood responsible for rapid defense against bacterial infections and tissue trauma. Normal reference ranges typically span 40% to 75% of total white blood cells. Neutrophilia reflects active infection, inflammation, or physical stress, while neutropenia increases vulnerability to opportunistic pathogens."
+            },
+            {
+                "canonical_test_name": "Lymphocytes",
+                "text": "Lymphocytes (T cells, B cells, and natural killer cells) govern cell-mediated and humoral adaptive immunity. Typical adult reference intervals span 20% to 45% of total leukocytes. Lymphocytosis is commonly seen in response to acute viral infections and immune stimulation, whereas lymphopenia can accompany systemic infections or corticosteroids."
+            }
+        ]
     }
 ]
 
 
 def seed_knowledge_base(db: Session) -> None:
     """
-    Seeds curated clinical references if not already present.
+    Seeds curated clinical references, adding any missing sources and chunks idempotently.
     """
-    existing_count = db.query(KnowledgeSource).count()
-    if existing_count > 0:
-        logger.info(f"Knowledge base already initialized with {existing_count} sources.")
-        return
-
-    logger.info("Seeding curated medical reference knowledge base...")
-    total_chunks = 0
+    logger.info("Verifying curated medical reference knowledge base...")
+    total_added = 0
     for item in CURATED_KNOWLEDGE:
         src_data = item["source"]
-        source = KnowledgeSource(
-            title=src_data["title"],
-            publisher=src_data["publisher"],
-            source_url=src_data["source_url"],
-            source_type=src_data["source_type"],
-            published_at=src_data["published_at"],
-            license_notes=src_data["license_notes"],
-            is_active=True
-        )
-        db.add(source)
-        db.flush()
+        source = db.query(KnowledgeSource).filter(KnowledgeSource.title == src_data["title"]).first()
+        if not source:
+            source = KnowledgeSource(
+                title=src_data["title"],
+                publisher=src_data["publisher"],
+                source_url=src_data["source_url"],
+                source_type=src_data["source_type"],
+                published_at=src_data["published_at"],
+                license_notes=src_data["license_notes"],
+                is_active=True
+            )
+            db.add(source)
+            db.flush()
 
         for idx, chunk_data in enumerate(item["chunks"], start=1):
-            chunk = KnowledgeChunk(
-                source_id=source.id,
-                canonical_test_name=chunk_data["canonical_test_name"],
-                chunk_text=chunk_data["text"],
-                chunk_index=idx,
-                metadata_json={"publisher": src_data["publisher"], "title": src_data["title"]}
-            )
-            db.add(chunk)
-            total_chunks += 1
+            existing_chunk = db.query(KnowledgeChunk).filter(
+                KnowledgeChunk.canonical_test_name == chunk_data["canonical_test_name"]
+            ).first()
+            if not existing_chunk:
+                chunk = KnowledgeChunk(
+                    source_id=source.id,
+                    canonical_test_name=chunk_data["canonical_test_name"],
+                    chunk_text=chunk_data["text"],
+                    chunk_index=idx,
+                    metadata_json={"publisher": src_data["publisher"], "title": src_data["title"]}
+                )
+                db.add(chunk)
+                total_added += 1
 
     db.commit()
-    logger.info(f"Successfully seeded {len(CURATED_KNOWLEDGE)} sources and {total_chunks} knowledge chunks.")
+    logger.info(f"Knowledge base verified. Added {total_added} new chunks.")

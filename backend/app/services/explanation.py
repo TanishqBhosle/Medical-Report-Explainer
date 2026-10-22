@@ -88,12 +88,12 @@ class ExplanationService:
 
             # 3. What is unknown & limitations
             unknown_factors = []
-            if not obs.reference_low and not obs.reference_high and not obs.reference_text:
+            if not ref_low and not ref_high and not ref_text:
                 unknown_factors.append("Specific laboratory reference range was omitted from the report.")
-            if obs.validation_status == "needs_review":
+            if _get_field(obs, "validation_status") == "needs_review":
                 unknown_factors.append("Extraction confidence was lower than standard. Please check the original printed sheet.")
-            if obs.flag_conflict:
-                unknown_factors.append(obs.discrepancy_note or "Discrepancy detected between laboratory flag and printed range.")
+            if _get_field(obs, "flag_conflict", False):
+                unknown_factors.append(_get_field(obs, "discrepancy_note") or "Discrepancy detected between laboratory flag and printed range.")
 
             unknown_str = " ".join(unknown_factors) if unknown_factors else "Interpretation depends on patient fasting status, current medications, age, and biological sex."
 
@@ -107,10 +107,10 @@ class ExplanationService:
             )
 
             obs_explanations.append({
-                "observation_id": obs.id,
+                "observation_id": _get_field(obs, "id") or "obs_id",
                 "test_name": test_norm,
                 "reported_value": val_display,
-                "reported_flag": obs.reported_flag,
+                "reported_flag": flag,
                 "plain_language_explanation": full_explanation,
                 "evidence_ids": evidence_ids,
                 "uncertainty_note": unknown_str if unknown_factors else None
@@ -118,7 +118,13 @@ class ExplanationService:
 
         # Overall summary
         total_tests = len(observations)
-        if critical_items:
+        if total_tests == 0:
+            summary = (
+                "We could not reliably extract any laboratory results from this report. "
+                "No conclusion can be made about whether your blood counts or diagnostic markers are high, low, or within range. "
+                "Please retry processing or upload a clearer copy."
+            )
+        elif critical_items:
             summary = (
                 f"URGENT REVIEW NOTICE: This report contains {len(critical_items)} result(s) marked as CRITICAL ({', '.join(critical_items)}). "
                 f"Please contact your ordering healthcare provider or testing laboratory promptly for clinical guidance."
@@ -174,6 +180,9 @@ class ExplanationService:
             "Never alter or discontinue prescription medications without explicit guidance from your physician."
         ]
 
+        if total_tests == 0:
+            limitations.append("Zero laboratory observations were extracted. No clinical assessment or reference range comparison could be performed.")
+
         # Add detected high-risk context warnings
         all_text = " ".join([o.test_name_original for o in observations] + [user_question or ""])
         high_risk_warnings = SafetyService.detect_high_risk_contexts(all_text)
@@ -185,7 +194,7 @@ class ExplanationService:
             "questions_for_clinician": questions_for_clinician,
             "citations": citations,
             "limitations": limitations,
-            "safety_status": "PASSED"
+            "safety_status": "NO_OBSERVATIONS_EXTRACTED" if total_tests == 0 else "PASSED"
         }
 
     @classmethod
@@ -199,6 +208,25 @@ class ExplanationService:
         Orchestrates safe explanation generation with safety checks, non-reported test detection,
         Gemini LLM integration, and deterministic safe fallback.
         """
+        # Step 0: Deterministic Zero-Observation Guard
+        if len(observations) == 0:
+            return {
+                "summary": (
+                    "We could not reliably extract any laboratory results from this report, so no test data is available "
+                    "to answer questions about specific parameters. No conclusion can be made about whether your blood counts "
+                    "or diagnostic markers are high, low, or within range. Please review your original paper report or upload a clearer copy."
+                ),
+                "observations": [],
+                "questions_for_clinician": [
+                    "Could you please review the printed paper copy of this report directly with my physician?"
+                ],
+                "citations": [],
+                "limitations": [
+                    "Zero laboratory observations were extracted. No clinical assessment or reference range comparison could be performed."
+                ],
+                "safety_status": "NO_OBSERVATIONS_EXTRACTED"
+            }
+
         # Step 1: Pre-generation Safety check on question
         if user_question:
             is_safe, refusal_code, refusal_msg = SafetyService.evaluate_query_safety(user_question)
@@ -223,7 +251,6 @@ class ExplanationService:
                 name = (o.get("test_name_normalized") or o.get("test_name_original")) if isinstance(o, dict) else (o.test_name_normalized or o.test_name_original)
                 if name:
                     test_names_in_report.add(name.lower())
-            # Also include tokens
             tokens_in_report = set()
             for tn in test_names_in_report:
                 tokens_in_report.update(tn.split())
@@ -233,7 +260,8 @@ class ExplanationService:
             known_unreported_candidates = [
                 "ferritin", "vitamin d", "vitamin b12", "cholesterol", "hdl", "ldl",
                 "triglycerides", "creatinine", "hemoglobin", "tsh", "alt", "ast",
-                "uric acid", "calcium", "potassium", "sodium", "bilirubin", "hba1c"
+                "uric acid", "calcium", "potassium", "sodium", "bilirubin", "hba1c",
+                "platelet", "white blood cell", "red blood cell", "wbc", "rbc"
             ]
             for cand in known_unreported_candidates:
                 if cand in query_lower and cand not in tokens_in_report:
@@ -241,8 +269,10 @@ class ExplanationService:
 
             if unreported_tests_found and not any(t in query_lower for t in tokens_in_report):
                 missing_test_name = unreported_tests_found[0]
+                present_names_list = sorted({(o.get("test_name_normalized") or o.get("test_name_original")) if isinstance(o, dict) else (o.test_name_normalized or o.test_name_original) for o in observations})
+                present_str = f" (which contains: {', '.join(present_names_list)})" if present_names_list else ""
                 return {
-                    "summary": f"The test parameter '{missing_test_name}' is not present in your uploaded medical report. ReportExplainer only explains tests that were actually evaluated and printed by your laboratory. Please check if this test was ordered under a separate document.",
+                    "summary": f"The test parameter '{missing_test_name}' is not present in your uploaded medical report{present_str}. ReportExplainer only explains tests that were actually evaluated and printed by your laboratory. Please check if this test was ordered under a separate document.",
                     "observations": [],
                     "questions_for_clinician": [
                         f"Was a {missing_test_name} test ordered as part of my recent laboratory evaluation?"

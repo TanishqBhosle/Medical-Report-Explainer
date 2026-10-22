@@ -49,6 +49,10 @@ def process_report_task(report_id: str, job_id: str, file_path: str, ext: str, d
         # Step 2: Table & observation candidate extraction
         raw_observations = TableExtractor.extract_rows(pages)
 
+        # Clear existing observations for this report to guarantee idempotent retry
+        db.query(Observation).filter(Observation.report_id == report.id).delete()
+        db.commit()
+
         # Step 3: Normalization & Deterministic Flagging
         job.stage = "normalizing_and_flagging"
         job.progress_percent = 75
@@ -85,7 +89,16 @@ def process_report_task(report_id: str, job_id: str, file_path: str, ext: str, d
             db.add(observation_record)
 
         # Step 4: Finalize Job and Report state
-        if unreadable_count > 0:
+        # Rules: COMPLETED must NEVER be set if zero parameters were extracted!
+        if len(raw_observations) == 0:
+            final_status = "NEEDS_REVIEW"
+            job.error_code = "NO_PARAMETERS_EXTRACTED"
+            job.safe_error_message = (
+                "We could not reliably extract any laboratory results from this report. "
+                "No conclusion can be made about whether your blood counts or diagnostic markers are high, low, or within range. "
+                "Please retry processing or upload a clearer copy."
+            )
+        elif unreadable_count > 0:
             final_status = "PARTIAL_SUCCESS"
         elif needs_review_count > 0:
             final_status = "NEEDS_REVIEW"
@@ -93,12 +106,17 @@ def process_report_task(report_id: str, job_id: str, file_path: str, ext: str, d
             final_status = "COMPLETED"
 
         report.processing_status = final_status
-        job.status = "completed" if final_status in ("COMPLETED", "NEEDS_REVIEW", "PARTIAL_SUCCESS") else "failed"
+        if final_status == "NEEDS_REVIEW":
+            job.status = "needs_review"
+        elif final_status in ("COMPLETED", "PARTIAL_SUCCESS"):
+            job.status = "completed"
+        else:
+            job.status = "failed"
         job.stage = "done"
         job.progress_percent = 100
         job.completed_at = datetime.now(timezone.utc)
         db.commit()
-        logger.info(f"Report {report.id} processed successfully. Status: {final_status}, Unreadable Pages: {unreadable_count}, Observations: {len(raw_observations)}")
+        logger.info(f"Report {report.id} processed. Status: {final_status}, Unreadable Pages: {unreadable_count}, Observations: {len(raw_observations)}")
 
     except ValueError as ve:
         err_msg = str(ve)
@@ -234,3 +252,55 @@ def delete_report(
     db.commit()
 
     return {"status": "success", "message": f"Report {report.id} and associated observations and files were completely deleted."}
+
+
+@router.post("/{report_id}/retry", response_model=ReportUploadResponse, status_code=status.HTTP_202_ACCEPTED)
+def retry_report_processing(
+    background_tasks: BackgroundTasks,
+    report: Report = Depends(get_user_report),
+    db: Session = Depends(get_db)
+):
+    from pathlib import Path
+    from app.core.config import settings
+
+    file_path = Path(settings.STORAGE_DIR) / report.storage_key
+    if not file_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "FILE_NOT_FOUND", "message": "Original report storage file is missing and cannot be reprocessed."}
+        )
+
+    ext = report.storage_key.split(".")[-1].lower() if "." in report.storage_key else "pdf"
+
+    # Reset report status
+    report.processing_status = "QUEUED"
+    db.commit()
+
+    # Create new job
+    job = ProcessingJob(
+        report_id=report.id,
+        job_type="EXTRACTION_RETRY",
+        status="queued",
+        stage="init",
+        progress_percent=0
+    )
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+
+    # Spawn background task
+    background_tasks.add_task(
+        process_report_task,
+        report_id=report.id,
+        job_id=job.id,
+        file_path=str(file_path),
+        ext=ext,
+        db=db
+    )
+
+    return ReportUploadResponse(
+        report_id=report.id,
+        job_id=job.id,
+        status="queued",
+        status_url=f"/api/v1/jobs/{job.id}"
+    )
