@@ -12,6 +12,7 @@ from app.db.base import Base
 from app.db.session import engine, SessionLocal
 from app.db.seed_knowledge import seed_knowledge_base
 
+import app.models
 from app.api.routes import auth, reports, observations, explanations, comparison, jobs, health
 
 # Ensure DB tables exist
