@@ -2,21 +2,28 @@ import re
 from typing import Dict, Any, Tuple, Optional
 
 CANONICAL_TEST_MAPPING: Dict[str, str] = {
-    # CBC
+    # CBC & Hematology
     "hb": "Hemoglobin",
     "hgb": "Hemoglobin",
     "hemoglobin": "Hemoglobin",
     "rbc": "Red Blood Cell Count",
     "red blood cell": "Red Blood Cell Count",
     "red blood cells": "Red Blood Cell Count",
+    "total rbc": "Red Blood Cell Count",
     "wbc": "White Blood Cell Count",
     "white blood cell": "White Blood Cell Count",
     "white blood cells": "White Blood Cell Count",
+    "tlc": "White Blood Cell Count",
+    "total leukocyte count": "White Blood Cell Count",
+    "total leucocyte count": "White Blood Cell Count",
     "platelet": "Platelet Count",
     "platelets": "Platelet Count",
     "platelet count": "Platelet Count",
+    "total platelet count": "Platelet Count",
     "hematocrit": "Hematocrit",
     "hct": "Hematocrit",
+    "pcv": "Hematocrit",
+    "packed cell volume": "Hematocrit",
     "mcv": "Mean Corpuscular Volume (MCV)",
     "mch": "Mean Corpuscular Hemoglobin (MCH)",
     "mchc": "MCHC",
@@ -26,6 +33,17 @@ CANONICAL_TEST_MAPPING: Dict[str, str] = {
     "monocytes": "Monocytes",
     "eosinophils": "Eosinophils",
     "basophils": "Basophils",
+    "esr": "Erythrocyte Sedimentation Rate (ESR)",
+
+    # Infectious & Serology
+    "dengue ns1 antigen": "Dengue NS1 Antigen",
+    "dengue ns1 ag": "Dengue NS1 Antigen",
+    "dengue ig m antibody": "Dengue IgM Antibody",
+    "dengue igm antibody": "Dengue IgM Antibody",
+    "dengue igm": "Dengue IgM Antibody",
+    "dengue ig g antibody": "Dengue IgG Antibody",
+    "dengue igg antibody": "Dengue IgG Antibody",
+    "dengue igg": "Dengue IgG Antibody",
 
     # Metabolic & Glucose
     "fasting blood sugar": "Fasting Blood Glucose",
@@ -108,6 +126,9 @@ CANONICAL_UNITS: Dict[str, str] = {
     "/cumm": "/cumm",
     "meq/l": "mEq/L",
     "mm/hr": "mm/hr",
+    "index value": "Index Value",
+    "index": "Index Value",
+    "ratio": "ratio",
 }
 
 
