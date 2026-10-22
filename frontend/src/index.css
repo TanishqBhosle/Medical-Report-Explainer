@@ -402,5 +402,6 @@ input, textarea, select {
 .text-gradient {
   background: linear-gradient(135deg, #0F172A 0%, #0284C7 60%, #0D9488 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
