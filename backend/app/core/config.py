@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "sqlite:///./medical_explainer.db"
     STORAGE_DIR: str = "./storage"
+    GEMINI_API_KEY: str = ""
 
     MAX_UPLOAD_SIZE_BYTES: int = 15 * 1024 * 1024  # 15 MB
     MAX_PAGE_LIMIT: int = 10

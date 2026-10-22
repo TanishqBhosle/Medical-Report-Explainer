@@ -4,6 +4,7 @@ import type {
   Report,
   JobStatus,
   Observation,
+  ObservationUpdateRequest,
   ExplanationResponse,
   CompareResponse,
 } from '../types';
@@ -120,6 +121,19 @@ class ApiClient {
       headers: this.getHeaders(),
     });
     return this.handleResponse(res);
+  }
+
+  async updateObservation(
+    reportId: string,
+    observationId: string,
+    update: ObservationUpdateRequest
+  ): Promise<Observation> {
+    const res = await fetch(`${API_BASE_URL}/reports/${reportId}/observations/${observationId}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(update),
+    });
+    return this.handleResponse<Observation>(res);
   }
 
   // Explanations

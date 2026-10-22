@@ -39,7 +39,9 @@ def process_report_task(report_id: str, job_id: str, file_path: str, ext: str, d
         else:
             pages = OCRExtractor.extract_image_text(file_path)
 
+        unreadable_count = sum(1 for p in pages if p.get("status") == "UNREADABLE")
         report.page_count = len(pages)
+        report.unreadable_pages = unreadable_count
         job.stage = "extracting_observations"
         job.progress_percent = 50
         db.commit()
@@ -57,7 +59,7 @@ def process_report_task(report_id: str, job_id: str, file_path: str, ext: str, d
             norm_obs = NormalizationService.normalize_observation(raw_obs)
             flagged_obs = FlaggingService.apply_flagging(norm_obs)
 
-            if flagged_obs["validation_status"] == "needs_review":
+            if flagged_obs["validation_status"] == "needs_review" or flagged_obs.get("flag_conflict"):
                 needs_review_count += 1
 
             observation_record = Observation(
@@ -73,6 +75,8 @@ def process_report_task(report_id: str, job_id: str, file_path: str, ext: str, d
                 reference_high=flagged_obs.get("reference_high"),
                 reference_text=flagged_obs.get("reference_text"),
                 reported_flag=flagged_obs["reported_flag"],
+                flag_conflict=flagged_obs.get("flag_conflict", False),
+                discrepancy_note=flagged_obs.get("discrepancy_note"),
                 extraction_confidence=flagged_obs.get("extraction_confidence", 1.0),
                 validation_status=flagged_obs["validation_status"],
                 source_page=flagged_obs.get("source_page", 1),
@@ -81,22 +85,49 @@ def process_report_task(report_id: str, job_id: str, file_path: str, ext: str, d
             db.add(observation_record)
 
         # Step 4: Finalize Job and Report state
-        final_status = "NEEDS_REVIEW" if needs_review_count > 0 else "COMPLETED"
+        if unreadable_count > 0:
+            final_status = "PARTIAL_SUCCESS"
+        elif needs_review_count > 0:
+            final_status = "NEEDS_REVIEW"
+        else:
+            final_status = "COMPLETED"
+
         report.processing_status = final_status
-        job.status = "completed"
+        job.status = "completed" if final_status in ("COMPLETED", "NEEDS_REVIEW", "PARTIAL_SUCCESS") else "failed"
         job.stage = "done"
         job.progress_percent = 100
         job.completed_at = datetime.now(timezone.utc)
         db.commit()
-        logger.info(f"Report {report.id} processed successfully. Status: {final_status}, Observations: {len(raw_observations)}")
+        logger.info(f"Report {report.id} processed successfully. Status: {final_status}, Unreadable Pages: {unreadable_count}, Observations: {len(raw_observations)}")
+
+    except ValueError as ve:
+        err_msg = str(ve)
+        logger.warning(f"Validation failure processing report {report_id}: {err_msg}")
+        db.rollback()
+        
+        # Parse error code prefix if present (e.g. "FILE_PASSWORD_PROTECTED: ...")
+        code = "EXTRACTION_VALIDATION_ERROR"
+        safe_msg = err_msg
+        if ":" in err_msg:
+            prefix, rest = err_msg.split(":", 1)
+            if prefix.isupper() and "_" in prefix:
+                code = prefix.strip()
+                safe_msg = rest.strip()
+
+        job.status = "failed"
+        job.stage = "error"
+        job.error_code = code
+        job.safe_error_message = safe_msg
+        report.processing_status = "FAILED"
+        db.commit()
 
     except Exception as e:
-        logger.error(f"Error processing report {report_id}: {e}")
+        logger.error(f"Unexpected error processing report {report_id}: {e}")
         db.rollback()
         job.status = "failed"
         job.stage = "error"
         job.error_code = "PROCESSING_FAILED"
-        job.safe_error_message = "An error occurred while analyzing the report document."
+        job.safe_error_message = "An error occurred while analyzing the report document. Please verify the document format or re-upload."
         report.processing_status = "FAILED"
         db.commit()
 

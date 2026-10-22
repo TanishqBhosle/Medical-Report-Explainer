@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import type { Report, Observation, ExplanationResponse, CitationItem } from '../types';
 import {
   ArrowLeft, Trash2, AlertCircle, BookOpen,
-  HelpCircle, Send, ExternalLink, ShieldAlert, Sparkles, Eye
+  HelpCircle, Send, ExternalLink, ShieldAlert, Sparkles, Eye, Edit2, AlertTriangle
 } from 'lucide-react';
 
 interface ReportDetailsPageProps {
@@ -26,6 +26,13 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
 
   // Provenance snippet modal
   const [activeSnippet, setActiveSnippet] = useState<{ test: string; page?: number | null; snippet?: string | null } | null>(null);
+
+  // Observation Correction state
+  const [editingObs, setEditingObs] = useState<Observation | null>(null);
+  const [editVal, setEditVal] = useState('');
+  const [editUnit, setEditUnit] = useState('');
+  const [editNotes, setEditNotes] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,6 +96,25 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
     }
   };
 
+  const handleSaveCorrection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingObs || !editVal.trim()) return;
+    setSavingEdit(true);
+    try {
+      const updated = await api.updateObservation(reportId, editingObs.id, {
+        value_text: editVal.trim(),
+        unit: editUnit.trim() || undefined,
+        correction_notes: editNotes.trim() || undefined,
+      });
+      setObservations((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+      setEditingObs(null);
+    } catch (err: any) {
+      alert(`Correction failed: ${err.message}`);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ maxWidth: '1000px', margin: '4rem auto', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -121,6 +147,7 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
   }
 
   const reviewNeeded = observations.some((o) => o.validation_status === 'needs_review');
+  const hasConflicts = observations.some((o) => o.flag_conflict);
 
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '2rem auto', padding: '0 1.5rem' }}>
@@ -168,6 +195,9 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
               <span>Report Date: <strong>{report.document_date || 'Not specified'}</strong></span>
               <span>Pages: <strong>{report.page_count || 1}</strong></span>
               <span>Total Extracted Parameters: <strong>{observations.length}</strong></span>
+              {report.unreadable_pages && report.unreadable_pages > 0 ? (
+                <span style={{ color: '#DC2626', fontWeight: 600 }}>Unreadable Pages: {report.unreadable_pages}</span>
+              ) : null}
             </div>
           </div>
 
@@ -177,8 +207,38 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
         </div>
       </div>
 
+      {/* Unreadable Pages Banner */}
+      {report.unreadable_pages && report.unreadable_pages > 0 ? (
+        <div style={{ backgroundColor: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+          <AlertTriangle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+          <div>
+            <div style={{ fontWeight: 600, color: '#991B1B', fontSize: '0.875rem' }}>
+              Partial Document Read ({report.unreadable_pages} unreadable page{report.unreadable_pages > 1 ? 's' : ''})
+            </div>
+            <p style={{ fontSize: '0.825rem', color: '#B91C1C', marginTop: '0.2rem' }}>
+              One or more pages could not be deciphered due to scan artifacts, low contrast, or faint print. Only parameters from readable pages are shown. Please verify unreadable pages directly on your paper report.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Flag Discrepancy Banner */}
+      {hasConflicts && (
+        <div style={{ backgroundColor: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+          <ShieldAlert size={20} color="#D97706" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+          <div>
+            <div style={{ fontWeight: 600, color: '#92400E', fontSize: '0.875rem' }}>
+              Laboratory Flag vs. Reference Range Discrepancy
+            </div>
+            <p style={{ fontSize: '0.825rem', color: '#B45309', marginTop: '0.2rem' }}>
+              A conflict exists between the printed laboratory flag and the numerical reference interval for one or more tests. The application preserves the printed flag and flags it for verification with your physician.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Uncertain Extraction Banner */}
-      {reviewNeeded && (
+      {reviewNeeded && !hasConflicts && (
         <div style={{ backgroundColor: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: '0.5rem', padding: '1rem', marginBottom: '1.5rem', display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
           <AlertCircle size={20} color="#D97706" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
           <div>
@@ -277,12 +337,24 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                     >
                       <td style={{ padding: '0.85rem 1.25rem' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                          {obs.test_name}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {obs.test_name}
+                          </span>
+                          {obs.is_user_corrected && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--teal-accent)', backgroundColor: 'var(--teal-light)', padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: 600 }}>
+                              Corrected
+                            </span>
+                          )}
                         </div>
                         {obs.test_name_original !== obs.test_name && (
                           <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
                             Printed: {obs.test_name_original}
+                          </div>
+                        )}
+                        {obs.flag_conflict && obs.discrepancy_note && (
+                          <div style={{ fontSize: '0.725rem', color: '#D97706', marginTop: '0.2rem', fontWeight: 500 }}>
+                            {obs.discrepancy_note}
                           </div>
                         )}
                       </td>
@@ -308,6 +380,31 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
                       </td>
 
                       <td style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>
+                        <button
+                          onClick={() => {
+                            setEditingObs(obs);
+                            setEditVal(obs.value_text);
+                            setEditUnit(obs.unit || '');
+                            setEditNotes('');
+                          }}
+                          title="Correct OCR extraction error"
+                          style={{
+                            border: '1px solid var(--border-strong)',
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: '4px',
+                            padding: '0.3rem 0.6rem',
+                            fontSize: '0.75rem',
+                            color: 'var(--primary)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem',
+                            marginRight: '0.5rem'
+                          }}
+                        >
+                          <Edit2 size={13} />
+                          Edit
+                        </button>
+
                         <button
                           onClick={() => setActiveSnippet({ test: obs.test_name, page: obs.source.page, snippet: obs.source.snippet })}
                           title="View source snippet in document"
@@ -522,6 +619,81 @@ export const ReportDetailsPage: React.FC<ReportDetailsPageProps> = ({ reportId, 
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Observation Correction Modal */}
+      {editingObs && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }}>
+          <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '1.75rem' }}>
+            <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.35rem' }}>
+              Correct Extracted Observation
+            </h3>
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+              Update OCR misreads for <strong>{editingObs.test_name}</strong>. The original printed text ({editingObs.test_name_original}: {editingObs.value_text}) is safely preserved in the audit log.
+            </p>
+
+            <form onSubmit={handleSaveCorrection}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  Value Text
+                </label>
+                <input
+                  type="text"
+                  value={editVal}
+                  onChange={(e) => setEditVal(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%' }}
+                  required
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  Unit
+                </label>
+                <input
+                  type="text"
+                  value={editUnit}
+                  onChange={(e) => setEditUnit(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  Correction Notes (Audit Trail)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. OCR omitted decimal point in 12.0"
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  className="input-field"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setEditingObs(null)}
+                  className="btn-secondary"
+                  disabled={savingEdit}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? 'Saving...' : 'Save Correction'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

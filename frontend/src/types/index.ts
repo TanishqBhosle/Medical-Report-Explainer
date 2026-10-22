@@ -21,7 +21,8 @@ export interface Report {
   page_count?: number | null;
   document_date?: string | null;
   laboratory_name?: string | null;
-  processing_status: 'UPLOADED' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'NEEDS_REVIEW' | 'FAILED';
+  unreadable_pages?: number | null;
+  processing_status: 'UPLOADED' | 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'NEEDS_REVIEW' | 'PARTIAL_SUCCESS' | 'FAILED';
   language?: string;
   created_at: string;
 }
@@ -57,10 +58,23 @@ export interface Observation {
   comparator?: string | null;
   unit?: string | null;
   reference_range: ReferenceRange;
-  reported_flag: 'low' | 'normal' | 'high' | 'critical' | 'unknown';
+  reported_flag: 'low' | 'normal' | 'high' | 'critical' | 'unknown' | 'conflict';
   validation_status: 'verified' | 'needs_review' | 'invalid';
   extraction_confidence: number;
   source: SourceProvenance;
+  flag_conflict?: boolean;
+  discrepancy_note?: string | null;
+  is_user_corrected?: boolean;
+  user_corrected_value_text?: string | null;
+}
+
+export interface ObservationUpdateRequest {
+  value_text: string;
+  value_numeric?: number | null;
+  unit?: string | null;
+  reference_low?: number | null;
+  reference_high?: number | null;
+  correction_notes?: string | null;
 }
 
 export interface CitationItem {

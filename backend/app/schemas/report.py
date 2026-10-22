@@ -17,6 +17,7 @@ class ReportResponse(BaseModel):
     media_type: str
     file_size_bytes: int
     page_count: Optional[int] = None
+    unreadable_pages: int = 0
     document_date: Optional[date] = None
     laboratory_name: Optional[str] = None
     processing_status: str
